@@ -9,19 +9,10 @@ const userSchema= mongose.Schema({
     email:{
         type:String
     },
-    age:{
-        type:Number,
-        require:true
-    },
     password:{
         type:String,
         require:true
-    },
-    token:[{
-        token:{
-            type:String
-        }
-    }]
+    }
 },
 {timestamps:true});
 userSchema.pre('save',async function(next){
@@ -30,12 +21,14 @@ userSchema.pre('save',async function(next){
         user.password = await bcrypt.hash(user.password,8)
     }
     next();
-})
-userSchema.methods.getAuthToken =  function() {
+});
+userSchema.methods.toJSON= function (){
     const user = this;
-    const jwt=  Token.sign({user_id:user._id},"forAuthenticationToken");
-    return jwt;
+    const userObject = user.toObject();
+    delete userObject.password;
+    return userObject; 
 }
+
 const User = mongose.model("User",userSchema);
 
 module.exports = User;
