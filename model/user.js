@@ -2,6 +2,7 @@ const mongose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const Token = require('jsonwebtoken')
 const userSchema= mongose.Schema({
+    _id: mongose.Schema.Types.ObjectId,
     name:{
         type:String,
         require:true
@@ -13,6 +14,7 @@ const userSchema= mongose.Schema({
         type:String,
         require:true
     }
+
 },
 {timestamps:true});
 userSchema.pre('save',async function(next){

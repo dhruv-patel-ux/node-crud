@@ -1,7 +1,11 @@
 const userModel = require('../model/user');
+const orderModel = require('../model/order')
 const jwt = require('jsonwebtoken');
-const key = "secureKey";
+const dotenv = require('dotenv');
+dotenv.config();
 const bcrypt = require('bcryptjs');
+const {jwtToken} = require('../middelwere/auth');
+
 
 exports.addUser = async (req, res) => {
     let verify = await userModel.findOne({ email: req.body.email });
@@ -20,16 +24,11 @@ exports.addUser = async (req, res) => {
     }
 }
 exports.getUser = async (req, res) => {
-    const decoded = jwt.verify(req.token,key,(err,decode)=>{
-        if(err){
-            res.status(401).send('token is expire');
-        }
-        else{
-            return decode;
-        }
-    });
     try {
-        res.send(decoded)
+        res.send({
+            data: req.user,
+            message:"success"
+        })
 
     } catch (error) {
         res.send(error);
@@ -43,7 +42,6 @@ exports.update_user = async (req, res) => {
         let user = await userModel.findByIdAndUpdate(_id, req.body, {
             new: true
         })
-        console.log(user)
         if (user) {
             res.status(200).send(user);
         } else {
@@ -68,14 +66,67 @@ exports.deleteUser = async (req, res) => {
     }
 }
 
+// add order ====>
+
+exports.addOrder= async (req , res) =>{
+    const {goodName,quantity,baseAmount} = req.body;
+    const totalAmount = quantity * baseAmount;
+    const order = new orderModel({
+        goodName,
+        quantity,
+        baseAmount,
+        totalAmount,
+        user:req.user._id
+    });
+
+    const  newOrder =await order.save(); 
+    res.send({
+        message:"order created successfully",
+        data:newOrder
+    });
+}
+
+//  get order Details ==========>
+
+exports.getOrders = async (req,res) =>{
+    const orderList = await orderModel.find({user:req.user._id});
+    let ord= await orderModel.aggregate([
+        {$lookup:{
+            from:'User',
+            localField:"user",
+            foreignField:'_id',
+            as:"userDetails"
+        }}
+    ]).exec();
+    console.log(ord);
+    // console.log( orderModel.aggregate([
+    //     {$lookup:{
+    //         from:'User',
+    //         localField:"user",
+    //         foreignField:'_id',
+    //         as:"userDetails"
+    //     }}
+    // ]).exec().then(res =>{
+    //     return res 
+    // }))
+    res.send({
+        message:"success",
+        data:orderList
+    });
+}
+
+
 exports.login = async (req,res)=>{
     try{
         const user = await userModel.findOne({email:req.body.email});
         if(user){
             const pass= bcrypt.compareSync(req.body.password,user.password);
             if(!pass) res.send('invalide password');
-            const token= jwtToken(user);
-            res.send({user,token}); 
+            const token= jwtToken(user._id);
+            res.send({
+                data:user,
+                token
+            }); 
         }
         else{
             res.send('invalide Email');
@@ -84,8 +135,4 @@ exports.login = async (req,res)=>{
         res.send({err});
     }
 
-}
-const jwtToken = (user) => {
-    const signToken = jwt.sign({ user }, key, { expiresIn: '10000s' });
-    return signToken;
 }
