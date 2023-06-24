@@ -1,22 +1,27 @@
 const mongose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const Token = require('jsonwebtoken')
+const Token = require('jsonwebtoken');
+
 const userSchema= mongose.Schema({
-    _id: mongose.Schema.Types.ObjectId,
     name:{
         type:String,
         require:true
     },
     email:{
-        type:String
+        type:String,
+        require:true
     },
     password:{
         type:String,
         require:true
+    },
+    roll : {
+        type : String,
+        default:'user'
     }
-
 },
 {timestamps:true});
+
 userSchema.pre('save',async function(next){
     const user = this;
     if(user.isModified('password')){
@@ -24,6 +29,7 @@ userSchema.pre('save',async function(next){
     }
     next();
 });
+
 userSchema.methods.toJSON= function (){
     const user = this;
     const userObject = user.toObject();

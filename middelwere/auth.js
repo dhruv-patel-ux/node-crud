@@ -23,6 +23,14 @@ const auth = async (req,res,next)=>{
     }
 }
 
+const  checkRoll = (req,res,next)=>{
+    if(req.user.roll !== 'admin'){
+        return res.send({
+            message: 'you are not authenticated for this route'
+        }) 
+    }
+    next();
+    }
 
 
-module.exports = {jwtToken,auth};
+module.exports = {jwtToken,auth,checkRoll};

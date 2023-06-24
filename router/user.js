@@ -1,28 +1,22 @@
 const express = require('express');
 const app = express.Router();
 const user = require('../controller/user');
-const {auth} = require('../middelwere/auth');
+const {auth,checkRoll} = require('../middelwere/auth');
 
-// const loginAuth= (req,res,next)=>{
-//     try{
-
-//         brearToken= req.headers.authorization.split(' ');
-//         req.token =brearToken[1];
-//         next();
-//     }catch(err){
-//         req.send(err);
-//     }
-    
-//     // next();
-// }
-app.post('/login',user.login);
-app.use(auth);
+// user
 app.post('/add_user',user.addUser);
-app.get('/get_user',user.getUser);
+app.post('/login',user.login);
+
+// only login user access this route 
+app.use(auth);
+app.get('/get_users',checkRoll,user.getUsers);
 app.patch('/update_user/:id',user.update_user);
 app.delete('/delete_user/:id',user.deleteUser);
+
+// order 
 app.post('/add_order',user.addOrder);
-app.get('/get_order',user.getOrders);
+app.get('/get_all_order',user.getAllOrders);
+app.get('/get_order',user.getOrder);
 module.exports = app;
 
 

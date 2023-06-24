@@ -7,7 +7,9 @@ const bcrypt = require('bcryptjs');
 const {jwtToken} = require('../middelwere/auth');
 
 
+// add new user or signup
 exports.addUser = async (req, res) => {
+    
     let verify = await userModel.findOne({ email: req.body.email });
     if (!verify) {
         let user = new userModel(req.body);
@@ -23,17 +25,58 @@ exports.addUser = async (req, res) => {
         res.send('email is already exist');
     }
 }
-exports.getUser = async (req, res) => {
-    try {
-        res.send({
-            data: req.user,
-            message:"success"
-        })
 
-    } catch (error) {
+// get all users
+//  only admin access this route 
+
+exports.getUsers = async (req, res) => {
+    const page = Number(req.query.page);
+    const limit = Number(req.query.limit);
+    const skip = (page - 1) * limit;
+    
+    //  set usrr list data format
+
+    try {
+        const userList = await userModel.aggregate([
+            {$match:{
+                roll:'user'
+            }},
+            {
+                $facet:{
+                    users:[{
+                        $project:{
+                            password:0,
+                            roll:0
+                        }
+                    },
+                    {$skip:skip},
+                    {$limit:limit}
+                ],
+                    total:[{
+                        $group:{
+                            _id:null,
+                            totalUser:{$sum:1}
+                        }
+                    }]
+                }
+            }
+        ])
+        
+        // send response 
+        res.send({
+            data: userList[0].users,
+            total:userList[0].total[0].totalUser,
+            message:"success"
+        });
+
+    }
+    // catch error
+    catch (error) {
         res.send(error);
     }
 }
+
+// update user
 
 exports.update_user = async (req, res) => {
     const _id = req.params.id
@@ -56,7 +99,6 @@ exports.update_user = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
     const _id = req.params.id
-    console.log(_id)
     try {
         const user = await userModel.findByIdAndDelete(_id, { new: true })
         res.send(user);
@@ -88,33 +130,84 @@ exports.addOrder= async (req , res) =>{
 
 //  get order Details ==========>
 
-exports.getOrders = async (req,res) =>{
-    const orderList = await orderModel.find({user:req.user._id});
-    let ord= await orderModel.aggregate([
+exports.getAllOrders = async (req,res) =>{
+    const orderList= await orderModel.aggregate([
         {$lookup:{
-            from:'User',
+            from:'users',
             localField:"user",
             foreignField:'_id',
             as:"userDetails"
-        }}
+        }},
+        {
+            $unwind: "$userDetails"
+        },
+        {
+            $project: {
+              user: 0,
+              __v:0,
+              "userDetails.__v":0
+            }
+          }
     ]).exec();
-    console.log(ord);
-    // console.log( orderModel.aggregate([
-    //     {$lookup:{
-    //         from:'User',
-    //         localField:"user",
-    //         foreignField:'_id',
-    //         as:"userDetails"
-    //     }}
-    // ]).exec().then(res =>{
-    //     return res 
-    // }))
+
     res.send({
         message:"success",
         data:orderList
     });
 }
 
+exports.getOrder = async (req, res) =>{
+    try{
+        //  quary 
+        const orderList= await orderModel.aggregate([
+            {
+                $match:{
+                    user:req.user._id
+                }},
+                {
+                    $lookup:{
+                        from: 'users',
+                        localField: "user",
+                        foreignField: '_id',
+                        as: "userDetails"
+                    }
+                },
+                {$unwind:"$userDetails"},
+                {
+                    $project:{
+                        user:0
+                    }
+                },
+                {
+                    $facet: {
+                      orders: [
+                        { $skip: 2 }, 
+                        { $limit: 2 },
+                      ],
+                      totalCount: [
+                        {
+                          $group: {
+                            _id: null,
+                            total: { $sum: 1 }
+                          }
+                        }
+                      ]
+                    }
+                  }
+            ]);
+            
+            // send data 
+            res.send({
+                message:"success",
+                data:orderList[0].orders,
+                total:orderList[0].totalCount[0].total
+            });
+           
+    }catch(err){
+        console.log(err);
+    }
+
+}
 
 exports.login = async (req,res)=>{
     try{

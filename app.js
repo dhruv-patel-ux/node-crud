@@ -3,8 +3,11 @@ const express = require("express");
 const app = express();
 
 const UserRouter = require("./router/user");
+const productRouter = require("./router/product")
+
 app.use(express.json());
 app.use("/api/v1/user/",UserRouter);
+app.use("/api/v1/product/",productRouter);
 const dotenv = require('dotenv');
 dotenv.config();
 
