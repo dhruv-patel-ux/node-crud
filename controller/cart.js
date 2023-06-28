@@ -68,3 +68,38 @@ exports.getUserCart = async (req,res) =>{
         console.log(err);
     }
 }
+
+exports.removeFromCart = async (req,res) =>{
+    try{
+        userId = req.user._id;
+        productId = req.params.id
+        const q1={userId};
+        const q2={productId}
+        cartModel.aggregate([
+            {$match:{
+                $and:[
+                    {q1},
+                    {q2}
+                ]
+            }
+            }]).then((results) => {
+                // Delete the matching documents
+                console.log(results);
+                const deletePromises = results.map((doc) => doc.remove());
+                return Promise.all(deletePromises);
+              })
+              .then((deletedDocs) => {
+                console.log(`${deletedDocs.length} documents deleted.`);
+              })
+              .catch((error) => {
+                console.error('Error deleting documents:', error);
+              });
+        console.log(removeProduct);
+        // res.send({
+        //     message:"product removed successfully",
+        //     data:removeProduct
+        // });
+    }catch(err){
+        console.log(err);
+    }
+}
